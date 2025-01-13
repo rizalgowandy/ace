@@ -1,34 +1,3 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Distributed under the BSD license:
- *
- * Copyright (c) 2010, Ajax.org B.V.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of Ajax.org B.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define(function(require, exports, module) {
 "use strict";
 
 var dom = require("ace/lib/dom");
@@ -37,27 +6,25 @@ var event = require("ace/lib/event");
 var Range = require("ace/range").Range;
 var Tooltip = require("ace/tooltip").Tooltip;
 
-function TokenTooltip (editor) {
-    if (editor.tokenTooltip)
-        return;
-    Tooltip.call(this, editor.container);
-    editor.tokenTooltip = this;
-    this.editor = editor;
+class TokenTooltip extends Tooltip {
+    constructor(editor) {
+        if (editor.tokenTooltip)
+            return;
+        super(editor.container);
+        editor.tokenTooltip = this;
+        this.editor = editor;
 
-    this.update = this.update.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseOut = this.onMouseOut.bind(this);
-    event.addListener(editor.renderer.scroller, "mousemove", this.onMouseMove);
-    event.addListener(editor.renderer.content, "mouseout", this.onMouseOut);
-}
-
-oop.inherits(TokenTooltip, Tooltip);
-
-(function(){
-    this.token = {};
-    this.range = new Range();
+        this.update = this.update.bind(this);
+        this.onMouseMove = this.onMouseMove.bind(this);
+        this.onMouseOut = this.onMouseOut.bind(this);
+        event.addListener(editor.renderer.scroller, "mousemove", this.onMouseMove);
+        event.addListener(editor.renderer.content, "mouseout", this.onMouseOut);
+    }
+    token = {};
     
-    this.update = function() {
+    range = new Range();
+    
+    update() {
         this.$timer = null;
         
         var r = this.editor.renderer;
@@ -105,6 +72,9 @@ oop.inherits(TokenTooltip, Tooltip);
             this.height = this.getHeight();
             this.tokenText = tokenText;
         }
+        if (!this.isOpen) {
+            this.setTheme(r.theme);
+        }
 
         this.show(null, this.x, this.y);
 
@@ -114,7 +84,7 @@ oop.inherits(TokenTooltip, Tooltip);
         this.marker = session.addMarker(this.range, "ace_bracket", "text");
     };
     
-    this.onMouseMove = function(e) {
+    onMouseMove(e) {
         this.x = e.clientX;
         this.y = e.clientY;
         if (this.isOpen) {
@@ -125,7 +95,7 @@ oop.inherits(TokenTooltip, Tooltip);
             this.$timer = setTimeout(this.update, 100);
     };
 
-    this.onMouseOut = function(e) {
+    onMouseOut(e) {
         if (e && e.currentTarget.contains(e.relatedTarget))
             return;
         this.hide();
@@ -133,7 +103,7 @@ oop.inherits(TokenTooltip, Tooltip);
         this.$timer = clearTimeout(this.$timer);
     };
 
-    this.setPosition = function(x, y) {
+    setPosition(x, y) {
         if (x + 10 + this.width > this.maxWidth)
             x = window.innerWidth - this.width - 10;
         if (y > window.innerHeight * 0.75 || y + 20 + this.height > this.maxHeight)
@@ -142,15 +112,13 @@ oop.inherits(TokenTooltip, Tooltip);
         Tooltip.prototype.setPosition.call(this, x + 10, y + 20);
     };
 
-    this.destroy = function() {
+    destroy() {
         this.onMouseOut();
         event.removeListener(this.editor.renderer.scroller, "mousemove", this.onMouseMove);
         event.removeListener(this.editor.renderer.content, "mouseout", this.onMouseOut);
         delete this.editor.tokenTooltip;
     };
 
-}).call(TokenTooltip.prototype);
+}
 
 exports.TokenTooltip = TokenTooltip;
-
-});

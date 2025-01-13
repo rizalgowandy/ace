@@ -27,8 +27,8 @@ if [ "$(git rev-parse --revs-only HEAD)" != "$(git rev-parse --revs-only refs/re
     echo build directory not clean; 
     exit 1
 fi
-if [  "$(git ls-files --others --exclude-standard)" ]; 
-    then echo untracked files;
+if [ "$(git ls-files --others --exclude-standard)" ];  then
+    echo untracked files;
     git ls-files --others --exclude-standard
     exit 1
 fi
@@ -56,7 +56,13 @@ git checkout -- package.json
 git checkout -- CHANGELOG.md
 npm run changelog
 VERSION_NUM="$(node -p "require('./package.json').version")";
-echo "version number for the build is" $VERSION_NUM
+echo "recommended version number for the build is" $VERSION_NUM 
+
+read -p "do you want to continue with the recommended version number? [y/n] " yn
+
+if [[ $yn == "n" ]]; then 
+    read -p "what should the new version be? (Example: 1.2.3) " VERSION_NUM 
+fi
 
 # update version number everywhere
 node -e "
@@ -74,10 +80,12 @@ node -e "
     }
     update('package.json');
     update('build/package.json');
-    update('./lib/ace/config.js');
+    update('./src/config.js');
+    update('ace.d.ts');
+    update('./types/ace-modules.d.ts');
 "
 
-pause "versions updated. do you want to start build script? [y/n]"
+pause "versions updated to $VERSION_NUM. do you want to start build script? [y/n]"
 
 node Makefile.dryice.js full
 cd build
@@ -110,7 +118,12 @@ fi
 
 pause "continue pushing to github? [y/n]"
 
-git push --progress "origin" HEAD:gh-pages HEAD:master refs/tags/"v"$VERSION_NUM:refs/tags/"v"$VERSION_NUM
+git push --progress "origin" HEAD:master refs/tags/"v"$VERSION_NUM:refs/tags/"v"$VERSION_NUM
+
+
+pause "update api docs [y/n]"
+bash tool/release-api-docs.sh
+
 echo "All done!"
 pause "May I go now? [y/n]"
 
