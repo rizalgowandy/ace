@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
 jobs:
   build:
 
@@ -16,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [16.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -28,8 +31,9 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm i && npm i eslint istanbul typescript
-    - run: node_modules/.bin/istanbul cover lib/ace/test/all.js
+    - run: npm i
+    - run: npm run cover
+    # run linter
     - run: |
         set -x;
         git status;
@@ -47,10 +51,21 @@ jobs:
                 node node_modules/eslint/bin/eslint $jsChanges;
             fi
         fi
-    # - run: npm run lint
-    - run: node_modules/.bin/tsc --noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noUnusedParameters --noImplicitThis ace.d.ts
-    - uses: codecov/codecov-action@v1
+    # check types
+    - run: |
+        set -x;
+        npx tsc -v;
+        npm run update-types;
+        git diff --color --exit-code ./ace*d.ts;
+        npm run typecheck;
+        node_modules/.bin/tsc --noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noUnusedParameters --noImplicitThis ace.d.ts;
+    - run: |
+        set -x;
+        ./tool/test-npm-package.sh
+    # upload to codecov
+    - uses: codecov/codecov-action@v3
       with:
+        token: d8edca4b-8e97-41e5-b54e-34c7cf3b2d47
         file: ./coverage/coverage.json
         flags: unittests
         name: codecov-umbrella
